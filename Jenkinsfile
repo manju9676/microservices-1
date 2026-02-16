@@ -2,6 +2,11 @@ pipeline {
     agent any
 
     stages {
+        stage('CQA'){
+            steps {
+                
+            }
+        }
         stage('Build & Tag Docker Image') {
             steps {
                 script {
