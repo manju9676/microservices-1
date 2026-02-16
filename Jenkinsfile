@@ -1,21 +1,32 @@
 pipeline {
     agent any
 
+    environment {
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
+    }
+
     stages {
         stage('Deploy To Kubernetes') {
             steps {
-                withKubeCredentials(kubectlCredentials: [[caCertificate: '', clusterName: 'my-cluster', contextName: '', credentialsId: 'k8s-token', namespace: 'webapps', serverUrl: 'https://1CA4805B4855A2DF65E86DF084283274.gr7.us-east-1.eks.amazonaws.com']]) {
-                    sh "kubectl apply -f deployment-service.yml"
-                    
-                }
+                sh '''
+                    echo "Checking EKS connectivity..."
+                    kubectl get nodes
+
+                    echo "Creating namespace if not exists"
+                    kubectl create ns webapps --dry-run=client -o yaml | kubectl apply -f -
+
+                    echo "Deploying manifests"
+                    kubectl apply -f deployment-service.yml -n webapps
+                '''
             }
         }
-        
-        stage('verify Deployment') {
+
+        stage('Verify Deployment') {
             steps {
-                withKubeCredentials(kubectlCredentials: [[caCertificate: '', clusterName: 'my-cluster', contextName: '', credentialsId: 'k8s-token', namespace: 'webapps', serverUrl: 'https://1CA4805B4855A2DF65E86DF084283274.gr7.us-east-1.eks.amazonaws.com']]) {
-                    sh "kubectl get svc -n webapps"
-                }
+                sh '''
+                    kubectl get pods -n webapps
+                    kubectl get svc -n webapps
+                '''
             }
         }
     }
